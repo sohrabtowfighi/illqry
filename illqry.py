@@ -170,7 +170,13 @@ def sort_symptoms(symptoms, disease):
         sorted_symptoms = sorted(symptoms, key=lambda x:x[1], reverse=True)
         tbl = tabulate.tabulate(sorted_symptoms)
         my_report.write('\n'+disease+'\n'+tbl)
-    
+
+def main(semicolon_delim_list_of_symptoms):
+    symptoms = semicolon_delim_list_of_symptoms.split(';')
+    my_diseases, separated_diseases = get_relevant_diseases(symptoms)
+    diseases_report = sort_diseases(symptoms, separated_diseases)
+    return diseases_report
+
 if __name__ == '__main__':
     args = sys.argv[1:]
     if len(args) == 0:
