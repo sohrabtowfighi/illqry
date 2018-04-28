@@ -22,7 +22,7 @@ import csv
 import tabulate
 from string import ascii_uppercase
 
-conn = sqlite3.connect('illqry.db')
+#conn = sqlite3.connect('illqry.db')
 
 class Disease(object):
     def __init__(self, name, symptom, score):
@@ -76,7 +76,7 @@ def make_dbs():
                         (line[0], line[1], line[2]))
         conn.commit()
 
-def get_relevant_diseases_one_symptom(symptom):
+def get_relevant_diseases_one_symptom(symptom, conn):    
     diseases_one_symptom = list()
     cur = conn.cursor()
     cur.execute("""SELECT disease,score FROM symptoms_diseases 
@@ -85,11 +85,12 @@ def get_relevant_diseases_one_symptom(symptom):
         diseases_one_symptom.append((row[0], row[1]))
     return diseases_one_symptom
         
-def get_relevant_diseases(symptoms):
+def get_relevant_diseases(symptoms, db_path):
+    conn = sqlite3.connect(db_path)
     diseases = []
     separated_diseases = []
     for symptom in symptoms:
-        subset_diseases = get_relevant_diseases_one_symptom(symptom)
+        subset_diseases = get_relevant_diseases_one_symptom(symptom, conn)
         diseases = diseases + subset_diseases       
         separated_diseases.append(subset_diseases)
         if len(subset_diseases) == 0:
@@ -97,7 +98,8 @@ def get_relevant_diseases(symptoms):
                             'Check MeSH term.')
     return diseases, separated_diseases
 
-def get_joint_relevant_diseases(symptoms):
+def get_joint_relevant_diseases(symptoms, db_path):
+    conn = sqlite3.connect(db_path)
     diseases_all_symptoms = list()
     cur = conn.cursor()
     qry_string = """SELECT * FROM 
@@ -133,12 +135,12 @@ def get_joint_relevant_diseases(symptoms):
                                              scores[i])
     return refined_diseases_all_symptoms
     
-def sort_diseases(symptoms, separated_diseases):
+def sort_diseases(symptoms, separated_diseases, db_path):
     output_file = 'report.txt'
     report_string = ''
     with open(output_file, 'w+') as my_report:
         if len(symptoms) > 1:
-            joint_disease_set = get_joint_relevant_diseases(symptoms)
+            joint_disease_set = get_joint_relevant_diseases(symptoms, db_path)
             sorted_joint_disease_set = sorted(joint_disease_set, 
                                               key=lambda x:x[1], 
                                               reverse=True)
@@ -171,9 +173,10 @@ def sort_symptoms(symptoms, disease):
         tbl = tabulate.tabulate(sorted_symptoms)
         my_report.write('\n'+disease+'\n'+tbl)
 
-def main(semicolon_delim_list_of_symptoms):
+def main(semicolon_delim_list_of_symptoms, illqry_dir):
+    path_to_db = os.path.join(illqry_dir, 'illqry.db')
     symptoms = semicolon_delim_list_of_symptoms.split(';')
-    my_diseases, separated_diseases = get_relevant_diseases(symptoms)
+    my_diseases, separated_diseases = get_relevant_diseases(symptoms, path_to_db)
     diseases_report = sort_diseases(symptoms, separated_diseases)
     return diseases_report
 
@@ -192,6 +195,6 @@ if __name__ == '__main__':
     else:
         # the arguments should be taken as MeSH symptom terms
         symptoms = args[0:]
-        my_diseases, separated_diseases = get_relevant_diseases(symptoms)
+        my_diseases, separated_diseases = get_relevant_diseases(symptoms, path_to_db)
         diseases_report = sort_diseases(symptoms, separated_diseases)
         print(diseases_report)
