@@ -21,6 +21,7 @@ import sys
 import csv
 import tabulate
 from string import ascii_uppercase
+import os
 
 #conn = sqlite3.connect('illqry.db')
 
