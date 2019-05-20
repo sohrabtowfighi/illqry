@@ -12,7 +12,8 @@ docs_string = """
 
    [options]
    -h       print the documentation string
-   -s       setup the illqry database file
+   -s       setup the illqry database file. You must create an empty file with 
+            a .db extension, this script will not create the empty file for you.
    -d       run with disease mode - $arg1 ... $argN are various diseases,
             the resulting report will provide list of common symptoms
    -ld      list all the diseases, you can supply an additional argument, which 
@@ -27,10 +28,10 @@ docs_string = """
    Setup the illqry_db.db file using "python3 illqry.py -s" 
 
    STANDARD USEAGE
-   python3 illqry.py $path_to_illqry_db Cough "Hemoptysis"
+   python3 illqry.py $path_to_illqry_db Cough Hemoptysis
 
    DISEASE BASED USEAGE
-   python3 illqry.py $path_to_illqry_db "Parkinson's" "Asthma"
+   python3 illqry.py $path_to_illqry_db -d "Wolff-Parkinson-White Syndrome"
 
    Pass along arguments which are the relevant symptoms.
    Enter MeSH symptoms in quotes so that they are captured as distinct.
