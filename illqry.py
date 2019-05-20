@@ -8,15 +8,19 @@ docs_string = """
     Uses data from doi:10.1038/ncomms5212
   
 
-   python3 illqry.py [$option] $path_to_illqry_db $arg1 [$arg2] ... [$argN]
+   python3 illqry.py $path_to_illqry_db [$option] $arg1 [$arg2] ... [$argN]
 
    [options]
    -h       print the documentation string
    -s       setup the illqry database file
    -d       run with disease mode - $arg1 ... $argN are various diseases,
             the resulting report will provide list of common symptoms
-   -ld      list all the diseases
-   -ls      list all the symptoms 
+   -ld      list all the diseases, you can supply an additional argument, which 
+            will modify functionality to return only diseases containing the 
+            string supplied in the additional argument
+   -ls      list all the symptoms, you can supply an additional argument, which 
+            will modify functionality to return only symptoms containing the 
+            string supplied in the additional argument
 
    SETUP of DATABASE FILE
    illqry_db.db file is a sqlite3 file created using this same script. 
@@ -31,6 +35,11 @@ docs_string = """
    Pass along arguments which are the relevant symptoms.
    Enter MeSH symptoms in quotes so that they are captured as distinct.
 """
+
+file_not_already_created_error_string = '''The database file needs to pre-exist. 
+        If you are setting up the database file for the first time. 
+        You need to create an empty .db file before running this script.'''
+
 from numpy import product
 import numpy as np
 import pdb
@@ -185,24 +194,73 @@ def get_symptoms_of_disease(disease, db_path):
 
 def sort_symptoms(symptoms, disease):
     output_file = 'report.txt'
+    report_string = ''
     with open(output_file, 'w+') as my_report:
         sorted_symptoms = sorted(symptoms, key=lambda x:x[1], reverse=True)
         tbl = tabulate.tabulate(sorted_symptoms)
-        my_report.write('\n'+disease+'\n'+tbl)
+        report_string = '\n'+disease+'\n'+tbl
+        my_report.write(report_string)
+    print(report_string)
+
+        
+def read_from_db(db_path, txtcontains='', symptom_or_disease='symptom'):
+    conn = sqlite3.connect(db_path)
+    diseases_or_symptoms = list()
+    cur = conn.cursor()
+    cur.execute("SELECT DISTINCT " + symptom_or_disease + " FROM symptoms_diseases")
+    for row in cur:
+        disease_or_symptom = row[0]
+        if len(txtcontains) > 0:
+
+            if (txtcontains.lower() in disease_or_symptom.lower()) == True: 
+            # only grab diseases which start with the specified text 
+            # if no text specified, grabs all the diseases 
+                diseases_or_symptoms.append(disease_or_symptom)
+            else:
+                pass 
+        else:
+            diseases_or_symptoms.append(disease_or_symptom)
+    return sorted(diseases_or_symptoms)
+        
+def read_diseases(db_path, txtcontains=''):
+    return read_from_db(db_path, txtcontains, symptom_or_disease='disease')
+
+def read_symptoms(db_path, txtcontains=''):
+    return read_from_db(db_path, txtcontains, symptom_or_disease='symptom')
 
 if __name__ == '__main__':
     args = sys.argv[1:]
     path_to_db = os.path.join(args[0])
+    if os.path.isfile(path_to_db) == False:
+        print(file_not_already_created_error_string)
+        exit(0) 
     if len(args) == 0:
         print(docs_string)
         exit(0)
     elif len(args) == 1 and args[0] == '-s':
         make_dbs()
-    elif args[0] == '-d':
+    elif args[1] == '-ld':
+        text=''
+        if len(args) == 3:
+            text = args[2]
+        diseases = read_diseases(path_to_db, txtcontains=text)
+        diseases = sorted(diseases)
+        for line in diseases:
+            print(line)
+    elif args[1] == '-ls':
+        text=''
+        if len(args) == 3:
+            text = args[2]
+        symptoms = read_symptoms(path_to_db, txtcontains=text)
+        symptoms = sorted(symptoms)
+        for line in symptoms:
+            print(line)
+    elif args[1] == '-d':
         # disease mode
-        disease = args[1]
-        symptoms = get_symptoms_of_disease(disease)
-        sorted_symptoms = sort_symptoms(symptoms, disease)        
+        disease = args[2]
+        symptoms = get_symptoms_of_disease(disease, path_to_db)
+        symptoms_report = sort_symptoms(symptoms, disease)        
+        print(symptoms_report)
     else:
         # the arguments should be taken as MeSH symptom terms
         symptoms = args[1:]
