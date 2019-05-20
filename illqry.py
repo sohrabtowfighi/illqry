@@ -1,15 +1,33 @@
-# illqry - Tool for checking symptom-disease and disease-disease links
-# Provided as is with no warranty whatsoever, 
-# not even for intended purpose.
-# Sohrab Towfighi, MD Candidate at Univ. Toronto
-# GNU GPL V2 Licence. (c) 2017
-
 docs_string = """
-   illqry - Provided as is with no warranty 
-   whatsoever not even for intended purpose.
-   Uses data from doi:10.1038/ncomms5212
    
-   Use '-s' as an argument to setup the databases.
+    illqry - Tool for checking symptom-disease and disease-disease links
+    Provided as is with no warranty whatsoever,
+    not even for intended purpose.
+    Sohrab Towfighi, MD Candidate at Univ. Toronto
+    GNU GPL V2 Licence. (c) 2017
+    Uses data from doi:10.1038/ncomms5212
+  
+
+   python3 illqry.py [$option] $path_to_illqry_db $arg1 [$arg2] ... [$argN]
+
+   [options]
+   -h       print the documentation string
+   -s       setup the illqry database file
+   -d       run with disease mode - $arg1 ... $argN are various diseases,
+            the resulting report will provide list of common symptoms
+   -ld      list all the diseases
+   -ls      list all the symptoms 
+
+   SETUP of DATABASE FILE
+   illqry_db.db file is a sqlite3 file created using this same script. 
+   Setup the illqry_db.db file using "python3 illqry.py -s" 
+
+   STANDARD USEAGE
+   python3 illqry.py $path_to_illqry_db Cough "Hemoptysis"
+
+   DISEASE BASED USEAGE
+   python3 illqry.py $path_to_illqry_db "Parkinson's" "Asthma"
+
    Pass along arguments which are the relevant symptoms.
    Enter MeSH symptoms in quotes so that they are captured as distinct.
 """
@@ -21,8 +39,7 @@ import sys
 import csv
 import tabulate
 from string import ascii_uppercase
-
-#conn = sqlite3.connect('illqry.db')
+import os 
 
 class Disease(object):
     def __init__(self, name, symptom, score):
@@ -157,7 +174,8 @@ def sort_diseases(symptoms, separated_diseases, db_path):
         my_report.write(report_string)
     return report_string
 
-def get_symptoms_of_disease(disease):
+def get_symptoms_of_disease(disease, db_path):
+    conn = sqlite3.connect(db_path)
     symptoms_one_disease = list()
     cur = conn.cursor()
     cur.execute("""SELECT symptom,score FROM symptoms_diseases 
@@ -173,15 +191,9 @@ def sort_symptoms(symptoms, disease):
         tbl = tabulate.tabulate(sorted_symptoms)
         my_report.write('\n'+disease+'\n'+tbl)
 
-def main(semicolon_delim_list_of_symptoms, illqry_dir):
-    path_to_db = os.path.join(illqry_dir, 'illqry.db')
-    symptoms = semicolon_delim_list_of_symptoms.split(';')
-    my_diseases, separated_diseases = get_relevant_diseases(symptoms, path_to_db)
-    diseases_report = sort_diseases(symptoms, separated_diseases)
-    return diseases_report
-
 if __name__ == '__main__':
     args = sys.argv[1:]
+    path_to_db = os.path.join(args[0])
     if len(args) == 0:
         print(docs_string)
         exit(0)
@@ -194,7 +206,7 @@ if __name__ == '__main__':
         sorted_symptoms = sort_symptoms(symptoms, disease)        
     else:
         # the arguments should be taken as MeSH symptom terms
-        symptoms = args[0:]
+        symptoms = args[1:]
         my_diseases, separated_diseases = get_relevant_diseases(symptoms, path_to_db)
-        diseases_report = sort_diseases(symptoms, separated_diseases)
+        diseases_report = sort_diseases(symptoms, separated_diseases, path_to_db)
         print(diseases_report)
