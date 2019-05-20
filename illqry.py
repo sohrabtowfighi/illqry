@@ -126,7 +126,6 @@ def get_joint_relevant_diseases(symptoms, db_path):
         Letter = str(ascii_uppercase[i])
         qry_string += " INNER JOIN (SELECT * FROM symptoms_diseases WHERE symptom = ?) AS " + Letter
         qry_string += " ON A.disease = " + Letter + '.disease '
-    print(qry_string)
     cur.execute(qry_string, symptoms)
     for row in cur:
         diseases_all_symptoms.append((row))
